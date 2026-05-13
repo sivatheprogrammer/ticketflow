@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <!--
+    Domain project deliberately has NO external dependencies.
+    This is a Clean Architecture rule: the Domain knows nothing about
+    EF Core, MediatR, ASP.NET, or any infrastructure concern.
+  -->
+</Project>
