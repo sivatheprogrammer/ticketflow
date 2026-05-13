@@ -2,7 +2,7 @@
 
 > A production-style event ticketing platform built to demonstrate the architectural evolution from a clean monolithic API to a cloud-native, event-driven distributed system.
 
-Inspired by real-world challenges at platforms like Ticketmaster and BookMyShow, TicketFlow tackles inventory concurrency, time-bound seat reservations, distributed transactions, and elastic scaling — with each development phase introducing a real architectural concern documented in Architecture Decision Records (ADRs).
+Inspired by real-world challenges at platforms like Ticketmaster and BookMyShow, TicketFlow tackles inventory concurrency, time-bound seat reservations, distributed transactions, and elastic scaling — with each development phase introducing a real architectural concern documented in Architecture Decision Records (ADRs). 
 
 This repository is intentionally built **in public, in phases**, so the commit history reads as an architect's decision journal.
 
@@ -12,7 +12,7 @@ This repository is intentionally built **in public, in phases**, so the commit h
 
 TicketFlow is composed of two independently deployable applications communicating over a versioned REST contract:
 
-- **Backend** — ASP.NET Core 8 Web API following Clean Architecture (Domain → Application → Infrastructure → API)
+- **Backend** — ASP.NET Core 10 Web API following Clean Architecture
 - **Frontend** — Angular 20 LTS SPA with standalone components, signals-based state, feature-based structure, and typed service layer
 
 This separation reflects a real-world architectural pattern where frontend and backend teams ship independently, scale independently, and evolve independently.
@@ -25,10 +25,10 @@ This separation reflects a real-world architectural pattern where frontend and b
 
 | Phase | Focus | Skills | Status |
 |-------|-------|--------|--------|
-| **1** | Monolith Foundation | .NET Core, Web API, EF Core, SQL Server, Angular 20 | 🚧 In Progress |
+| **1** | Monolith Foundation | .NET Core, Web API, EF Core, SQL Server, Angular 20 | ✅ Complete | May 2026 |
 | **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID, JWT, PKCE, role-based access (+ Okta bonus) | ⏳ Planned |
 | **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (locking + caching), nginx load balancer | ⏳ Planned |
-| **4** | Cloud Deployment | Azure App Service, Azure SQL, Azure DevOps, Bicep | ⏳ Planned |
+| **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Azure DevOps, Terraform | ⏳ Planned |
 | **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ⏳ Planned |
 | **6** | Container Orchestration (ACA + AKS) | Azure Container Apps (primary), AKS + Helm (demonstration), KEDA-based autoscaling | ⏳ Planned |
 
