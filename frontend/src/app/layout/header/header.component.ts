@@ -1,38 +1,36 @@
-import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Component, inject } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatButtonModule } from '@angular/material/button';
-import { MatIconModule } from '@angular/material/icon';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, MatToolbarModule, MatButtonModule, MatIconModule],
+  imports: [RouterLink, MatToolbarModule, MatButtonModule],
   template: `
-    <mat-toolbar color="primary">
-      <mat-icon>confirmation_number</mat-icon>
-      <a routerLink="/" class="brand">TicketFlow</a>
-      <span class="spacer"></span>
-      <a mat-button routerLink="/events" routerLinkActive="active-link">
-        Events
+    <mat-toolbar color="primary" style="gap:8px;padding:0 16px">
+      <a routerLink="/events"
+         style="color:white;text-decoration:none;font-size:1.2rem;font-weight:500">
+        🎟 TicketFlow
       </a>
-      <a mat-button routerLink="/my-bookings" routerLinkActive="active-link">
-        My Bookings
-      </a>
+      <span style="flex:1"></span>
+      <a mat-button routerLink="/events" style="color:white">Events</a>
+      @if (auth.isAuthenticated()) {
+        <span style="color:white;margin:0 12px;font-size:0.9rem">
+          {{ auth.userName() }}
+        </span>
+        <button mat-button style="color:white" (click)="auth.logout()">
+          Sign out
+        </button>
+      } @else {
+        <button mat-button style="color:white" (click)="auth.login()">
+          Sign in
+        </button>
+      }
     </mat-toolbar>
-  `,
-  styles: [`
-    mat-toolbar { gap: 8px; }
-    .brand {
-      font-size: 1.2rem;
-      font-weight: 500;
-      text-decoration: none;
-      color: white;
-      margin-left: 8px;
-    }
-    .spacer { flex: 1; }
-    .active-link { background: rgba(255,255,255,0.15); border-radius: 4px; }
-    a[mat-button] { color: white; }
-  `]
+  `
 })
-export class HeaderComponent {}
+export class HeaderComponent {
+  readonly auth = inject(AuthService);
+}

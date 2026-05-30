@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Booking, CreateBookingRequest, CreateBookingResponse } from '../models';
+import { Booking, CreateBookingResponse, TicketTier } from '../models';
+
+// Phase 2: CustomerId removed — API extracts it from JWT token
+export interface CreateBookingRequest {
+  eventId: string;
+  quantity: number;
+  tier: TicketTier;
+}
 
 @Injectable({ providedIn: 'root' })
 export class BookingsService {
@@ -25,7 +32,8 @@ export class BookingsService {
     return this.http.get<Booking>(`${this.baseUrl}/${bookingId}`);
   }
 
-  listForCustomer(customerId: string): Observable<Booking[]> {
-    return this.http.get<Booking[]>(`${this.baseUrl}/customer/${customerId}`);
+  // Phase 2: Uses /my endpoint which extracts customer from JWT
+  getMyBookings(): Observable<Booking[]> {
+    return this.http.get<Booking[]>(`${this.baseUrl}/my`);
   }
 }

@@ -44,10 +44,10 @@ public class GetBookingByIdHandler : IRequestHandler<GetBookingByIdQuery, Bookin
             .FirstOrDefaultAsync(b => b.Id == req.Id, ct)
             ?? throw new EntityNotFoundException(nameof(Booking), req.Id);
 
-        var @event = await _db.Events.FindAsync(new object[] { booking.EventId }, ct)
+        var evnt = await _db.Events.FindAsync(new object[] { booking.EventId }, ct)
             ?? throw new EntityNotFoundException(nameof(Event), booking.EventId);
 
-        return BookingMapper.MapToDto(booking, @event.Name);
+        return BookingMapper.MapToDto(booking, evnt.Name);
     }
 }
 

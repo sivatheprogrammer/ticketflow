@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'events', pathMatch: 'full' },
@@ -16,12 +17,14 @@ export const routes: Routes = [
   },
   {
     path: 'bookings/:id',
+    canActivate: [authGuard], // Protected — must be logged in
     loadComponent: () =>
       import('./features/bookings/booking-detail/booking-detail.component')
         .then(m => m.BookingDetailComponent)
   },
   {
     path: 'my-bookings',
+    canActivate: [authGuard], // Protected — must be logged in
     loadComponent: () =>
       import('./features/my-bookings/my-bookings.component')
         .then(m => m.MyBookingsComponent)

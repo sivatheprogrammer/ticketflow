@@ -6,10 +6,8 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { BookingsService } from '../../core/services/bookings.service';
+import { AuthService } from '../../core/services/auth.service';
 import { Booking, BookingStatus } from '../../core/models';
-
-// Phase 1: hardcoded demo customer. Replaced by JWT claim in Phase 2.
-const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 
 @Component({
   selector: 'app-my-bookings',
@@ -19,13 +17,20 @@ const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
     MatCardModule, MatButtonModule, MatProgressSpinnerModule, MatChipsModule
   ],
   template: `
-    <h1 style="margin-bottom:16px">My Bookings</h1>
+    <h1 style="margin-bottom:16px">
+      My Bookings
+      @if (authService.userName()) {
+        <span style="font-size:1rem;font-weight:400;color:#666;margin-left:8px">
+          — {{ authService.userName() }}
+        </span>
+      }
+    </h1>
 
     @if (loading()) {
       <mat-spinner diameter="40"></mat-spinner>
     } @else if (bookings().length === 0) {
       <mat-card>
-        <mat-card-content>
+        <mat-card-content style="padding:24px">
           <p>You have no bookings yet. <a routerLink="/events">Browse events</a></p>
         </mat-card-content>
       </mat-card>
@@ -39,7 +44,7 @@ const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
             </mat-card-header>
             <mat-card-content>
               <p>{{ b.ticketCount }} ticket(s) · {{ b.totalAmount | currency }}</p>
-              <p>{{ b.createdAt | date:'medium' }}</p>
+              <p>Booked {{ b.createdAt | date:'medium' }}</p>
             </mat-card-content>
             <mat-card-actions>
               <a mat-button [routerLink]="['/bookings', b.id]">View Details</a>
@@ -59,11 +64,13 @@ const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 })
 export class MyBookingsComponent implements OnInit {
   private readonly bookingsService = inject(BookingsService);
+  readonly authService = inject(AuthService);
   readonly bookings = signal<Booking[]>([]);
   readonly loading = signal(true);
 
   ngOnInit(): void {
-    this.bookingsService.listForCustomer(DEMO_CUSTOMER_ID).subscribe({
+    // Phase 2: no hardcoded customer ID — API resolves customer from JWT
+    this.bookingsService.getMyBookings().subscribe({
       next: data => { this.bookings.set(data); this.loading.set(false); },
       error: () => this.loading.set(false)
     });

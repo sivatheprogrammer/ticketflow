@@ -4,22 +4,20 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { EventsService } from '../../../core/services/events.service';
 import { BookingsService } from '../../../core/services/bookings.service';
+import { AuthService } from '../../../core/services/auth.service';
 import { EventDetails, TicketTier } from '../../../core/models';
-
-// Phase 1: hardcoded demo customer. Replaced by JWT claim in Phase 2.
-const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
 
 @Component({
   selector: 'app-event-details',
   standalone: true,
   imports: [
-    CommonModule, MatCardModule, MatButtonModule,
-    MatProgressSpinnerModule, MatChipsModule, MatDividerModule
+    CommonModule,
+    MatCardModule, MatButtonModule,
+    MatProgressSpinnerModule, MatDividerModule
   ],
   template: `
     @if (loading()) {
@@ -27,13 +25,12 @@ const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
         <mat-spinner diameter="48"></mat-spinner>
       </div>
     } @else if (event()) {
-      <mat-card>
+      <mat-card style="margin-top:16px">
         <mat-card-header>
           <mat-card-title>{{ event()!.name }}</mat-card-title>
           <mat-card-subtitle>
             {{ event()!.venueName }} · {{ event()!.city }} ·
             {{ event()!.startsAt | date:'fullDate' }}
-            {{ event()!.startsAt | date:'shortTime' }}
           </mat-card-subtitle>
         </mat-card-header>
 
@@ -51,12 +48,18 @@ const DEMO_CUSTOMER_ID = '00000000-0000-0000-0000-000000000001';
               </div>
               <div class="tier-right">
                 <span class="tier-price">{{ tier.price | currency }}</span>
-                <button
-                  mat-raised-button color="primary"
-                  [disabled]="tier.availableCount === 0 || booking()"
-                  (click)="reserve(tier.tier)">
-                  {{ booking() ? 'Reserving...' : 'Reserve' }}
-                </button>
+
+                @if (authService.isAuthenticated()) {
+                  <button mat-raised-button color="primary"
+                    [disabled]="tier.availableCount === 0 || reserving()"
+                    (click)="reserve(tier.tier)">
+                    {{ reserving() ? 'Reserving...' : 'Reserve' }}
+                  </button>
+                } @else {
+                  <button mat-stroked-button (click)="authService.login()">
+                    Sign in to Reserve
+                  </button>
+                }
               </div>
             </div>
             <mat-divider />
@@ -85,9 +88,12 @@ export class EventDetailsComponent implements OnInit {
   private readonly bookingsService = inject(BookingsService);
   private readonly snack = inject(MatSnackBar);
 
+  // Phase 2: AuthService injected — no more DEMO_CUSTOMER_ID
+  readonly authService = inject(AuthService);
+
   readonly event = signal<EventDetails | null>(null);
   readonly loading = signal(true);
-  readonly booking = signal(false);
+  readonly reserving = signal(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;
@@ -98,22 +104,29 @@ export class EventDetailsComponent implements OnInit {
   }
 
   tierLabel(tier: TicketTier): string {
-    return { [TicketTier.General]: 'General', [TicketTier.Premium]: 'Premium', [TicketTier.VIP]: 'VIP' }[tier];
+    return {
+      [TicketTier.General]: 'General',
+      [TicketTier.Premium]: 'Premium',
+      [TicketTier.VIP]: 'VIP'
+    }[tier];
   }
 
   reserve(tier: TicketTier): void {
-    this.booking.set(true);
+    this.reserving.set(true);
+
+    // Phase 2: No customerId in the request body — the API extracts it from the JWT token
     this.bookingsService.create({
-      customerId: DEMO_CUSTOMER_ID,
       eventId: this.event()!.id,
       quantity: 1,
       tier
     }).subscribe({
       next: result => {
-        this.snack.open(`Booking ${result.referenceCode} reserved! Confirm within 15 minutes.`, 'OK', { duration: 6000 });
+        this.snack.open(
+          `Booking ${result.referenceCode} reserved! Confirm within 15 minutes.`,
+          'OK', { duration: 6000 });
         this.router.navigate(['/bookings', result.bookingId]);
       },
-      error: () => this.booking.set(false)
+      error: () => this.reserving.set(false)
     });
   }
 }
