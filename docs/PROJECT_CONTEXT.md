@@ -8,7 +8,7 @@
 
 TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-level skills for my job search. It's a production-style event ticketing platform (think Ticketmaster / BookMyShow) built **incrementally across 6 phases**, where each phase introduces one major architectural concern. The goal is not just working software — it's a Git history and ADR trail that reads as an architect's decision journal.
 
-**Tech stack:** ASP.NET Core 10 (Clean Architecture + CQRS) backend, Angular 20 LTS (standalone components + signals) frontend, SQL Server, evolving toward Docker + Redis → Azure + Terraform → modular monolith with one extracted service → Azure Container Apps (primary) + AKS (demonstration).
+**Tech stack:** ASP.NET Core 10 (Clean Architecture + CQRS) backend, Angular 20 LTS (standalone components + signals) frontend, SQL Server, Docker + Redis → Azure + Terraform → modular monolith with one extracted service → Azure Container Apps (primary) + AKS (demonstration).
 
 ---
 
@@ -17,8 +17,8 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | Phase | Focus | Skills Demonstrated | Status | Completed |
 |-------|-------|---------------------|--------|-----------|
 | **1** | Monolith Foundation | .NET 10, Web API, EF Core 10, SQL Server, Angular 20 | ✅ Complete | May 2026 |
-| **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID... | ✅ Complete | May 2026 |
-| **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ⏳ Planned | — |
+| **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID | ✅ Complete | May 2026 |
+| **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ✅ Complete | May 2026 |
 | **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Azure DevOps, Terraform | ⏳ Planned | — |
 | **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ⏳ Planned | — |
 | **6** | Container Orchestration (ACA + AKS) | Azure Container Apps (primary), AKS + Helm (demonstration), KEDA autoscaling | ⏳ Planned | — |
@@ -29,11 +29,11 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 
 ## 📍 Where I Am Right Now
 
-**Current Phase:** 2 — Authentication & Authorization
-**Current Sub-task:** Setting up Microsoft Entra ID tenant and planning OAuth integration
-**Last commit:** feat: Phase 1 complete — Clean Architecture monolith + Angular 20 SPA
+**Current Phase:** 4 — Cloud Deployment + Terraform IaC
+**Current Sub-task:** Planning Azure infrastructure and Terraform setup
+**Last commit:** feat: Phase 3 complete — Docker, docker-compose, Redis cache-aside + distributed locking, nginx LB
 **GitHub:** https://github.com/sivatheprogrammer/ticketflow
-**Blocking issues:** None — Phase 1 fully shipped
+**Blocking issues:** None — Phase 3 fully shipped, tagged v0.3
 
 ---
 
@@ -51,7 +51,7 @@ Each decision links to a full ADR in `/docs/adr`. This list is the TL;DR.
 | ADR-005b | Upgraded to .NET 10 (not .NET 8) | Machine had .NET 10 installed; dotnet-ef tool v10 installed automatically; all packages aligned to net10.0 | 1 |
 | ADR-006 | Microsoft Entra ID (primary) + Okta (bonus demo) for OAuth | Best resume keyword density for .NET Architect roles, Azure ecosystem coherence, free at production scale | 2 |
 | ADR-009 *(planned)* | Terraform over Bicep for IaC | Broader job market recognition, multi-cloud transferability | 4 |
-| ADR-010 *(planned)* | Redis for distributed locking and read-through caching | Multi-instance API deployment requires distributed coordination; fulfills the future-need flagged in ADR-004 | 3 |
+| ADR-010 | Redis for distributed locking and cache-aside; ticket pre-creation trade-off documented | Multi-instance API deployment requires distributed coordination; cache-aside reduces DB load under load | 3 |
 | ADR-011 *(planned)* | Modular Monolith + one extracted Identity service (not full microservices) | Demonstrates architectural restraint AND decomposition skill; 90% of microservices learning at 50% of the time investment | 5 |
 | ADR-013 *(planned)* | Azure Container Apps (primary) + AKS (demonstration track) | ACA fits the workload; AKS demonstrates Kubernetes operational skill; comparison ADR shows architectural judgment | 6 |
 
@@ -84,18 +84,24 @@ ticketflow/
 ├── backend/
 │   ├── src/
 │   │   ├── TicketFlow.Domain/          # Entities, business rules, NO external deps
-│   │   ├── TicketFlow.Application/     # CQRS handlers, DTOs, validators
-│   │   ├── TicketFlow.Infrastructure/  # EF Core, background jobs, seed data
+│   │   ├── TicketFlow.Application/     # CQRS handlers, DTOs, validators, interfaces
+│   │   ├── TicketFlow.Infrastructure/  # EF Core, Redis, background jobs, seed data
 │   │   └── TicketFlow.Api/             # Controllers, middleware, DI
 │   └── tests/
 │       └── TicketFlow.Domain.Tests/    # Pure domain unit tests (no DB, no web host)
 ├── frontend/                           # Angular 20 SPA
-│   └── src/app/
-│       ├── core/                       # Services, interceptors, models
-│       ├── features/                   # events, bookings, my-bookings
-│       └── layout/                     # Header, navigation
+│   ├── src/app/
+│   │   ├── core/                       # Services, interceptors, models
+│   │   ├── features/                   # events, bookings, my-bookings
+│   │   └── layout/                     # Header, navigation
+│   ├── Dockerfile                      # Multi-stage: Node build → nginx runtime
+│   └── nginx.conf                      # SPA routing + /api/ proxy pass
+├── nginx/
+│   └── nginx-lb.conf                   # Round-robin load balancer across 2 API replicas
+├── docker-compose.yml                  # Full stack: API×2, Angular, SQL Server, Redis, nginx LB
+├── .env                                # SA_PASSWORD (gitignored)
 ├── docs/
-│   ├── adr/                            # Architecture Decision Records (6 written)
+│   ├── adr/                            # Architecture Decision Records (ADR-001 to ADR-010)
 │   ├── diagrams/                       # C4 diagrams (planned)
 │   └── PROJECT_CONTEXT.md              # 👈 You are here
 └── .github/workflows/                  # CI pipelines (planned Phase 4)
@@ -115,36 +121,33 @@ ticketflow/
 
 ### Phase 1 — Monolith Foundation ✅
 - **What I built:** ASP.NET Core 10 Web API with Clean Architecture (Domain / Application / Infrastructure / API layers). CQRS via MediatR with handlers for Events, Venues, Customers, Bookings. EF Core 10 + SQL Server with entity configurations and seed data (3 venues, 4 events across Houston / Dallas / Austin). 15-minute ticket reservation hold via BackgroundService. Angular 20 SPA with standalone components, signals, lazy-loaded routes, typed HTTP services, error interceptor, and 4 feature pages (Events list, Event details, Booking detail with countdown timer, My Bookings).
-
-- **What surprised me:** Machine had .NET 10 installed (not .NET 8 as scaffolded) — required updating all csproj TargetFramework and package versions. Angular Material theming API changed — `mat.$indigo-palette` no longer valid in newer versions; replaced with `mat.define-theme()`. The `dotnet-ef` global tool installs the latest version by default, which must match the project's target framework.
-
-- **What I'd do differently:** Verify target .NET version on the machine before scaffolding. Add `.gitattributes` from day one to avoid LF/CRLF warnings on Windows. Pin `dotnet-ef` tool version explicitly: `dotnet tool install --global dotnet-ef --version 10.*`.
-
-- **Known limitations:** `DEMO_CUSTOMER_ID` is hardcoded in `EventDetailsComponent` and `MyBookingsComponent` — Phase 2 replaces this with the authenticated user's JWT `oid` claim from Entra ID.
-
-- **Time spent:** ~1 full day (including setup, troubleshooting, and GitHub push)
+- **What surprised me:** Machine had .NET 10 installed (not .NET 8 as scaffolded) — required updating all csproj TargetFramework and package versions. Angular Material theming API changed — `mat.$indigo-palette` no longer valid in newer versions; replaced with `mat.define-theme()`.
+- **What I'd do differently:** Verify target .NET version on the machine before scaffolding. Add `.gitattributes` from day one. Pin `dotnet-ef` tool version explicitly.
+- **Known limitations:** `DEMO_CUSTOMER_ID` was hardcoded — Phase 2 replaced this with the authenticated user's JWT `oid` claim.
+- **Time spent:** ~1 full day
 
 ---
 
 ### Phase 2 — OAuth via Microsoft Entra ID ✅
-- **What I built:** Microsoft Entra ID OAuth integration with PKCE flow.
-  JWT validation in .NET API. First-login customer provisioning.
-  Angular OIDC client with auth interceptor and route guards.
-  DEMO_CUSTOMER_ID replaced with real JWT oid claim.
-
-- **What surprised me:** angular-auth-oidc-client property name changed
-  between versions — clockSkewInSeconds not valid, correct property is
-  maxIdTokenIatOffsetAllowedInSeconds. Azure portal My APIs showing
-  "No results" required manifest JSON edit to add the permission.
-
-- **Known limitations:** Header simplified — MatMenuModule removed
-  to fix compilation issues. Can be restored in a cleanup commit.
-
+- **What I built:** Microsoft Entra ID OAuth integration with PKCE flow. JWT validation in .NET API. First-login customer provisioning. Angular OIDC client with auth interceptor and route guards. DEMO_CUSTOMER_ID replaced with real JWT oid claim.
+- **What surprised me:** `angular-auth-oidc-client` property name changed between versions — `clockSkewInSeconds` not valid, correct property is `maxIdTokenIatOffsetAllowedInSeconds`. Azure portal My APIs showing "No results" required manifest JSON edit.
+- **Known limitations:** Header simplified — MatMenuModule removed to fix compilation issues.
 - **Time spent:** ~2 sessions
 
-**Current Phase:** 3 — Containerization + Redis
-**Current Sub-task:** Planning Docker + Redis setup
-*To be completed.*
+---
+
+### Phase 3 — Containerization + Redis ✅
+- **What I built:** Multi-stage Dockerfile for .NET 10 API (SDK → aspnet runtime, non-root `app` user). Multi-stage Dockerfile for Angular 20 (Node 22 build → nginx 1.27 runtime). `docker-compose.yml` wiring 6 services: SQL Server 2022, Redis 7, 2× API replicas, nginx load balancer, Angular SPA. Redis cache-aside for `GET /api/events` and `GET /api/events/{id}` with 5-minute TTL. Redis distributed locking on ticket reservations (`lock:ticket:{id}`) protecting against double-booking across replicas. `appsettings.Docker.json` for container-specific config. `MigrateAsync()` moved outside `IsDevelopment()` guard so DB initializes in all environments.
+
+- **What surprised me:** `.dockerignore` is critical — Windows-generated `obj/` folders with LocalDB paths in `project.assets.json` break Linux container builds entirely. The `aspnet:10.0` runtime image doesn't have `addgroup`/`adduser` — use the built-in `app` user instead. `appsettings.Docker.json` won't override the base file if the connection string key names don't match exactly (`"Default"` not `"DefaultConnection"`). `MigrateAsync()` was inside `IsDevelopment()` guard — had to move it out for Docker environment.
+
+- **What I'd do differently:** Add `.dockerignore` from day one of any project. Verify connection string key names match across all `appsettings.*.json` files before containerizing.
+
+- **Known limitations:** Redis distributed locking uses a simple SETNX pattern. For production, RedLock algorithm (across multiple Redis nodes) provides stronger guarantees. Cache invalidation on booking confirmation not yet implemented — event availability counts can be stale for up to 5 minutes. Ticket pre-creation model documented as a known trade-off in ADR-010.
+
+- **Time spent:** ~1 full day (including Docker debugging)
+
+---
 
 ### Phase 4 — Cloud Deployment + Terraform IaC
 *To be completed.*
@@ -162,24 +165,26 @@ ticketflow/
 If you're an AI assistant reading this to help me continue the project, here's what you need to know:
 
 1. **Read this entire file first** before suggesting anything. It contains the roadmap, current state, and key decisions already made.
-2. **Don't suggest skipping ahead.** This project is intentionally incremental — Phase 5 things shouldn't appear in Phase 2.
+2. **Don't suggest skipping ahead.** This project is intentionally incremental — Phase 5 things shouldn't appear in Phase 3.
 3. **Respect existing ADRs.** If you disagree with one, say so explicitly and propose a new ADR rather than silently changing direction.
-4. **Runtime:** The project runs on **.NET 10** (not .NET 8 — machine had .NET 10 installed). All csproj files target `net10.0`. EF Core packages are version `10.0.0`.
-5. **Code style:** C# with nullable enabled, file-scoped namespaces, primary constructors where they help. Angular standalone components, signals over RxJS for component state, RxJS for HTTP streams. `@if` / `@for` control flow syntax (not `*ngIf` / `*ngFor`).
-6. **My current goal:** Start Phase 2 — Microsoft Entra ID OAuth integration. Key tasks: (1) Create Entra External ID tenant, (2) Register SPA + API applications, (3) Add JWT validation to .NET API, (4) Add `angular-auth-oidc-client` to Angular, (5) Replace `DEMO_CUSTOMER_ID` with JWT `oid` claim.
-7. **My experience level:** Comfortable with .NET and Angular, learning architect-level patterns (DDD, distributed systems, cloud-native deployment).
+4. **Runtime:** The project runs on **.NET 10** (not .NET 8). All csproj files target `net10.0`. EF Core packages are version `10.0.0`.
+5. **Code style:** C# with nullable enabled, file-scoped namespaces, primary constructors where they help. Angular standalone components, signals over RxJS for component state, RxJS for HTTP streams. `@if` / `@for` control flow syntax.
+6. **Docker:** Full stack runs via `docker compose up` from repo root. API image is `ticketflow-api`, Angular image is `ticketflow-web`. SA password in `.env` file (gitignored).
+7. **My current goal:** Start Phase 4 — Azure cloud deployment with Terraform IaC.
+8. **My experience level:** Comfortable with .NET and Angular, learning architect-level patterns (DDD, distributed systems, cloud-native deployment).
 
 ---
 
 ## 📝 Open Questions / Parking Lot
 
 - [ ] Should the Booking aggregate emit domain events for future Saga refactor in Phase 5?
-- [ ] Add `.gitattributes` for LF/CRLF handling on Windows — do in Phase 2 cleanup commit
-- [ ] Entra ID — use External ID (customer-facing) or Workforce tenant for portfolio?
+- [ ] Add `.gitattributes` for LF/CRLF handling on Windows — do in cleanup commit
 - [ ] Add OpenTelemetry from Phase 3 (Docker) or wait until Phase 5 (microservices)?
 - [ ] Should I add OpenAPI versioning (`/api/v1/`) before Phase 4 cloud deployment?
 - [ ] C4 architecture diagrams in `/docs/diagrams` — generate before or after Phase 5?
+- [ ] Cache invalidation on booking confirmation — invalidate `events:detail:{id}` when tickets are reserved
+- [ ] RedLock algorithm for production-grade distributed locking (Phase 6 consideration)
 
 ---
 
-*Last updated: May 2026 — Phase 1 complete, Phase 2 planning started*
+*Last updated: May 2026 — Phase 3 complete, Phase 4 planning started*
