@@ -12,16 +12,32 @@ public record GetEventsQuery(
     DateTime? FromDate = null,
     DateTime? ToDate = null,
     int Page = 1,
-    int PageSize = 12
-) : IRequest<List<EventSummaryDto>>;
+    int PageSize = 10) : IRequest<List<EventSummaryDto>>;
 
 public class GetEventsHandler : IRequestHandler<GetEventsQuery, List<EventSummaryDto>>
 {
     private readonly IApplicationDbContext _db;
-    public GetEventsHandler(IApplicationDbContext db) => _db = db;
+    private readonly IRedisService _redis;
+
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
+
+    public GetEventsHandler(IApplicationDbContext db, IRedisService redis)
+    {
+        _db = db;
+        _redis = redis;
+    }
 
     public async Task<List<EventSummaryDto>> Handle(GetEventsQuery req, CancellationToken ct)
     {
+        // Cache key encodes all query parameters so different filters get different cache entries
+        var cacheKey = $"events:list:{req.City}:{req.Category}:{req.FromDate:yyyyMMdd}:{req.ToDate:yyyyMMdd}:{req.Page}:{req.PageSize}";
+
+        // 1. Check cache
+        var cached = await _redis.GetAsync<List<EventSummaryDto>>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
+        // 2. Cache miss — query DB
         var query = _db.Events
             .Include(e => e.Venue)
             .Include(e => e.Tickets)
@@ -39,7 +55,7 @@ public class GetEventsHandler : IRequestHandler<GetEventsQuery, List<EventSummar
         if (req.ToDate.HasValue)
             query = query.Where(e => e.StartsAt <= req.ToDate.Value);
 
-        return await query
+        var result = await query
             .OrderBy(e => e.StartsAt)
             .Skip((req.Page - 1) * req.PageSize)
             .Take(req.PageSize)
@@ -56,5 +72,10 @@ public class GetEventsHandler : IRequestHandler<GetEventsQuery, List<EventSummar
                 e.Tickets.Count(t => t.Status == TicketStatus.Available)
             ))
             .ToListAsync(ct);
+
+        // 3. Store in cache
+        await _redis.SetAsync(cacheKey, result, CacheExpiry, ct);
+
+        return result;
     }
 }

@@ -17,7 +17,7 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | Phase | Focus | Skills Demonstrated | Status | Completed |
 |-------|-------|---------------------|--------|-----------|
 | **1** | Monolith Foundation | .NET 10, Web API, EF Core 10, SQL Server, Angular 20 | ✅ Complete | May 2026 |
-| **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID, JWT, PKCE, role-based access (+ Okta bonus branch) | ⏳ Planned | — |
+| **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID... | ✅ Complete | May 2026 |
 | **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ⏳ Planned | — |
 | **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Azure DevOps, Terraform | ⏳ Planned | — |
 | **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ⏳ Planned | — |
@@ -126,10 +126,24 @@ ticketflow/
 
 ---
 
-### Phase 2 — OAuth via Microsoft Entra ID
-*To be completed.*
+### Phase 2 — OAuth via Microsoft Entra ID ✅
+- **What I built:** Microsoft Entra ID OAuth integration with PKCE flow.
+  JWT validation in .NET API. First-login customer provisioning.
+  Angular OIDC client with auth interceptor and route guards.
+  DEMO_CUSTOMER_ID replaced with real JWT oid claim.
 
-### Phase 3 — Containerization + Redis (Distributed Locking & Caching)
+- **What surprised me:** angular-auth-oidc-client property name changed
+  between versions — clockSkewInSeconds not valid, correct property is
+  maxIdTokenIatOffsetAllowedInSeconds. Azure portal My APIs showing
+  "No results" required manifest JSON edit to add the permission.
+
+- **Known limitations:** Header simplified — MatMenuModule removed
+  to fix compilation issues. Can be restored in a cleanup commit.
+
+- **Time spent:** ~2 sessions
+
+**Current Phase:** 3 — Containerization + Redis
+**Current Sub-task:** Planning Docker + Redis setup
 *To be completed.*
 
 ### Phase 4 — Cloud Deployment + Terraform IaC

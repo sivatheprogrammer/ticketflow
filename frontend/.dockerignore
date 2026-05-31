@@ -1,0 +1,15 @@
+# Dependencies — reinstalled fresh inside the container
+node_modules/
+
+# Build output — rebuilt inside the container
+dist/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+.dockerignore

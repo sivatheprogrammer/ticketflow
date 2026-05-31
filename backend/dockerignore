@@ -1,0 +1,21 @@
+# Build artifacts — these are generated inside the container.
+# Copying the Windows-generated ones breaks the Linux build.
+**/bin/
+**/obj/
+**/out/
+
+# Local dev / IDE
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+
+# Docker / git
+**/.git/
+**/.gitignore
+**/Dockerfile
+**/.dockerignore
+
+# Test results & logs
+**/TestResults/
+**/*.log

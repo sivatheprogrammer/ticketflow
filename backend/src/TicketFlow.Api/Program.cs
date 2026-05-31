@@ -1,4 +1,5 @@
 using FluentValidation;
+using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -111,20 +112,30 @@ builder.Services.AddCors(opts =>
         .AllowAnyMethod());
 });
 
+// --- Redis ---
+builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
+    ConnectionMultiplexer.Connect(
+        builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
+builder.Services.AddSingleton<TicketFlow.Application.Common.Interfaces.IRedisService,
+    TicketFlow.Infrastructure.Services.RedisService>();
+
 var app = builder.Build();
 
 // --- Pipeline ---
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// Always run migrations (needed in Docker + future cloud deployments)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    await db.Database.MigrateAsync();
+    await TicketFlow.Infrastructure.Persistence.Seed.DatabaseSeeder.SeedAsync(db);
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
-
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await db.Database.MigrateAsync();
-    await TicketFlow.Infrastructure.Persistence.Seed.DatabaseSeeder.SeedAsync(db);
 }
 
 app.UseSerilogRequestLogging();
@@ -139,3 +150,6 @@ app.MapControllers();
 app.Run();
 
 public partial class Program { }
+
+
+

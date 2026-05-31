@@ -13,10 +13,26 @@ public record GetEventByIdQuery(Guid Id) : IRequest<EventDetailsDto>;
 public class GetEventByIdHandler : IRequestHandler<GetEventByIdQuery, EventDetailsDto>
 {
     private readonly IApplicationDbContext _db;
-    public GetEventByIdHandler(IApplicationDbContext db) => _db = db;
+    private readonly IRedisService _redis;
+
+    private static readonly TimeSpan CacheExpiry = TimeSpan.FromMinutes(5);
+
+    public GetEventByIdHandler(IApplicationDbContext db, IRedisService redis)
+    {
+        _db = db;
+        _redis = redis;
+    }
 
     public async Task<EventDetailsDto> Handle(GetEventByIdQuery req, CancellationToken ct)
     {
+        var cacheKey = $"events:detail:{req.Id}";
+
+        // 1. Check cache
+        var cached = await _redis.GetAsync<EventDetailsDto>(cacheKey, ct);
+        if (cached is not null)
+            return cached;
+
+        // 2. Cache miss — query DB
         var @event = await _db.Events
             .Include(e => e.Venue)
             .Include(e => e.Tickets)
@@ -33,7 +49,7 @@ public class GetEventByIdHandler : IRequestHandler<GetEventByIdQuery, EventDetai
             .OrderBy(t => t.Price)
             .ToList();
 
-        return new EventDetailsDto(
+        var result = new EventDetailsDto(
             @event.Id,
             @event.Name,
             @event.Description,
@@ -46,5 +62,10 @@ public class GetEventByIdHandler : IRequestHandler<GetEventByIdQuery, EventDetai
             @event.Venue.Capacity,
             tiers
         );
+
+        // 3. Store in cache
+        await _redis.SetAsync(cacheKey, result, CacheExpiry, ct);
+
+        return result;
     }
 }

@@ -39,7 +39,7 @@ public class BookingsController : ControllerBase
         var customerId = await _mediator.Send(
             new ProvisionCustomerCommand(entraObjectId, GetUserEmail(), GetUserName()), ct);
 
-        var cmd = new CreateBookingCommand(customerId, req.EventId, req.Quantity, req.Tier);
+        var cmd = new CreateBookingCommand(customerId, req.EventId, req.Tier, req.Quantity);
         var result = await _mediator.Send(cmd, ct);
         return CreatedAtAction(nameof(GetById), new { id = result.BookingId }, result);
     }
