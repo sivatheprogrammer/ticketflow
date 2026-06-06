@@ -107,15 +107,18 @@ const string AngularCorsPolicy = "AngularDev";
 builder.Services.AddCors(opts =>
 {
     opts.AddPolicy(AngularCorsPolicy, policy => policy
-        .WithOrigins("http://localhost:4200")
-        .AllowAnyHeader()
-        .AllowAnyMethod());
+     .WithOrigins(
+         "http://localhost:4200",
+         "https://app-ticketflow-web-dev-gv0o1o.azurewebsites.net")
+     .AllowAnyHeader()
+     .AllowAnyMethod());
 });
 
 // --- Redis ---
 builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(
-        builder.Configuration["Redis:ConnectionString"] ?? "localhost:6379"));
+        builder.Configuration["Redis__ConnectionString"] ?? "localhost:6379,abortConnect=false"));
+
 builder.Services.AddSingleton<TicketFlow.Application.Common.Interfaces.IRedisService,
     TicketFlow.Infrastructure.Services.RedisService>();
 

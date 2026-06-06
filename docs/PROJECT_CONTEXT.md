@@ -30,8 +30,8 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 ## 📍 Where I Am Right Now
 
 **Current Phase:** 4 — Cloud Deployment + Terraform IaC
-**Current Sub-task:** Planning Azure infrastructure and Terraform setup
-**Last commit:** feat: Phase 3 complete — Docker, docker-compose, Redis cache-aside + distributed locking, nginx LB
+**Current Sub-task: providers.tf, variables.tf, terraform.tfvars created — next step is main.tf
+**Last commit: (don't commit yet — terraform files not complete)
 **GitHub:** https://github.com/sivatheprogrammer/ticketflow
 **Blocking issues:** None — Phase 3 fully shipped, tagged v0.3
 
@@ -150,7 +150,10 @@ ticketflow/
 ---
 
 ### Phase 4 — Cloud Deployment + Terraform IaC
-*To be completed.*
+**In progress.**
+- Terraform v1.15.5 installed
+- `terraform/` folder created with providers.tf, variables.tf, terraform.tfvars, outputs.tf, main.tf (empty)
+- Next: write main.tf (Resource Group, ACR, App Service, Azure SQL, Redis, Key Vault)
 
 ### Phase 5 — Modular Monolith + Identity Service Extraction
 *To be completed.*

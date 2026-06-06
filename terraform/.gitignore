@@ -1,0 +1,12 @@
+﻿# Local .terraform directory
+.terraform/
+.terraform.lock.hcl
+
+# Terraform state files (contains secrets — never commit)
+*.tfstate
+*.tfstate.backup
+*.tfstate.*.backup
+
+# Variable files with secrets
+terraform.tfvars
+*.auto.tfvars
