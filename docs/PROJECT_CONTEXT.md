@@ -19,7 +19,7 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | **1** | Monolith Foundation | .NET 10, Web API, EF Core 10, SQL Server, Angular 20 | ✅ Complete | May 2026 |
 | **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID | ✅ Complete | May 2026 |
 | **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ✅ Complete | May 2026 |
-| **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Azure DevOps, Terraform | ⏳ Planned | — |
+| **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Terraform | ✅ Complete | June 2026 |
 | **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ⏳ Planned | — |
 | **6** | Container Orchestration (ACA + AKS) | Azure Container Apps (primary), AKS + Helm (demonstration), KEDA autoscaling | ⏳ Planned | — |
 
@@ -29,11 +29,16 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 
 ## 📍 Where I Am Right Now
 
-**Current Phase:** 4 — Cloud Deployment + Terraform IaC
-**Current Sub-task: providers.tf, variables.tf, terraform.tfvars created — next step is main.tf
-**Last commit: (don't commit yet — terraform files not complete)
+**Current Phase:** 5 — Modular Monolith + Identity Service Extraction
+**Current Sub-task:** Not started
+**Last commit:** docs: add ADR-009 - Terraform over Bicep
 **GitHub:** https://github.com/sivatheprogrammer/ticketflow
-**Blocking issues:** None — Phase 3 fully shipped, tagged v0.3
+**Blocking issues:** None — Phase 4 fully shipped
+
+**Live Azure URLs (when infra is up):**
+- API: https://app-ticketflow-api-dev-siva04.azurewebsites.net
+- Web: https://app-ticketflow-web-dev-siva04.azurewebsites.net
+- Run `terraform apply -auto-approve` from `/terraform` to recreate; `terraform destroy -auto-approve` to tear down and stop billing.
 
 ---
 
@@ -50,7 +55,7 @@ Each decision links to a full ADR in `/docs/adr`. This list is the TL;DR.
 | ADR-005 | Angular 20 LTS (not 21) | Stable ecosystem, mature library compatibility, planned future migration to 21+ | 1 |
 | ADR-005b | Upgraded to .NET 10 (not .NET 8) | Machine had .NET 10 installed; dotnet-ef tool v10 installed automatically; all packages aligned to net10.0 | 1 |
 | ADR-006 | Microsoft Entra ID (primary) + Okta (bonus demo) for OAuth | Best resume keyword density for .NET Architect roles, Azure ecosystem coherence, free at production scale | 2 |
-| ADR-009 *(planned)* | Terraform over Bicep for IaC | Broader job market recognition, multi-cloud transferability | 4 |
+| ADR-009 | Terraform over Bicep for IaC | Job market relevance, multi-cloud transferability, state management | 4 |
 | ADR-010 | Redis for distributed locking and cache-aside; ticket pre-creation trade-off documented | Multi-instance API deployment requires distributed coordination; cache-aside reduces DB load under load | 3 |
 | ADR-011 *(planned)* | Modular Monolith + one extracted Identity service (not full microservices) | Demonstrates architectural restraint AND decomposition skill; 90% of microservices learning at 50% of the time investment | 5 |
 | ADR-013 *(planned)* | Azure Container Apps (primary) + AKS (demonstration track) | ACA fits the workload; AKS demonstrates Kubernetes operational skill; comparison ADR shows architectural judgment | 6 |
@@ -149,11 +154,45 @@ ticketflow/
 
 ---
 
-### Phase 4 — Cloud Deployment + Terraform IaC
-**In progress.**
-- Terraform v1.15.5 installed
-- `terraform/` folder created with providers.tf, variables.tf, terraform.tfvars, outputs.tf, main.tf (empty)
-- Next: write main.tf (Resource Group, ACR, App Service, Azure SQL, Redis, Key Vault)
+### Phase 4 — Cloud Deployment + Terraform IaC ✅
+
+- **What I built:** Terraform IaC provisioning Resource Group, ACR, App Service Plan (B2),
+  2x Linux App Services (API + Angular, Docker-based), Azure SQL Server + Database (Basic, 2GB).
+  Fixed suffix (`siva04`) for stable resource URLs across destroy/apply cycles.
+  Docker images pushed to ACR. Full end-to-end flow verified: Angular → nginx →
+  Azure App Service API → Azure SQL.
+
+- **What surprised me:**
+  - Azure SQL provisioning is region-restricted on free/trial subscriptions —
+    `eastus`, `eastus2`, `westus2` all failed with `ProvisioningDisabled`;
+    `centralus` worked.
+  - Classic `azurerm_redis_cache` is being retired by Microsoft — descoped
+    Redis from Azure entirely for Phase 4 (documented in ADR-009).
+  - `azurerm` v4 provider breaking changes from v3: `enable_non_ssl_port`
+    removed from Redis resource, `DOCKER_REGISTRY_SERVER_*` moved from
+    `app_settings` into `site_config.application_stack`,
+    `prevent_deletion_if_contains_resources = false` required for clean
+    `terraform destroy`.
+  - `ConnectionMultiplexer.Connect()` throws synchronously even with
+    `abortConnect=false` in the connection string if Redis is unreachable —
+    app crashed on every request until Redis config key name was fixed
+    (`Redis__ConnectionString`, was previously mismatched/had trailing space).
+  - Azure App Service routes by `Host` header — nginx reverse proxy to the
+    API needed `proxy_ssl_server_name on;` and an explicit `Host` header
+    override, or Azure returned 400 Bad Request before the API code ran.
+  - `random_string.suffix` regenerates on every destroy/apply, breaking
+    hardcoded URLs in `nginx.conf` and CORS config — switched to a fixed
+    `var.suffix` ("siva04").
+
+- **What I'd do differently:** Pick the fixed-suffix approach from the start.
+  Verify Azure SQL region availability before writing Terraform.
+
+- **Known limitations:** Entra ID OAuth redirect URI is still configured for
+  `localhost:4200` — login on the Azure-hosted Angular app redirects back to
+  localhost. Would need to add the Azure Web App URL as an additional redirect
+  URI in the Entra ID App Registration to fix.
+
+- **Time spent:** ~2 sessions
 
 ### Phase 5 — Modular Monolith + Identity Service Extraction
 *To be completed.*
