@@ -39,3 +39,9 @@ variable "sql_admin_password" {
   type        = string
   sensitive   = true
 }
+
+variable "suffix" {
+  description = "Fixed suffix for globally unique resource names"
+  type        = string
+  default     = "siva04"
+}

@@ -109,7 +109,7 @@ builder.Services.AddCors(opts =>
     opts.AddPolicy(AngularCorsPolicy, policy => policy
      .WithOrigins(
          "http://localhost:4200",
-         "https://app-ticketflow-web-dev-gv0o1o.azurewebsites.net")
+         "https://app-ticketflow-web-dev-siva04.azurewebsites.net")
      .AllowAnyHeader()
      .AllowAnyMethod());
 });

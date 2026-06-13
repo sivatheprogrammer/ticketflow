@@ -1,12 +1,5 @@
-# Random suffix to ensure globally unique resource names
-resource "random_string" "suffix" {
-  length  = 6
-  special = false
-  upper   = false
-}
-
 locals {
-  suffix = random_string.suffix.result
+  suffix = var.suffix
   tags = {
     project     = var.project
     environment = var.environment
