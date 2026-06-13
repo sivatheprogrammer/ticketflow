@@ -1,7 +1,7 @@
 using FluentAssertions;
-using TicketFlow.Domain.Entities;
 using TicketFlow.Domain.Enums;
 using TicketFlow.Domain.Exceptions;
+using TicketFlow.Domain.Modules.Events.Entities;
 using Xunit;
 
 namespace TicketFlow.Domain.Tests;

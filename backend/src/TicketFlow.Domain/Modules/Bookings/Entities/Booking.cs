@@ -1,8 +1,9 @@
 using TicketFlow.Domain.Common;
 using TicketFlow.Domain.Enums;
 using TicketFlow.Domain.Exceptions;
+using TicketFlow.Domain.Modules.Events.Entities;
 
-namespace TicketFlow.Domain.Entities;
+namespace TicketFlow.Domain.Modules.Bookings.Entities;
 
 public class Booking : BaseEntity
 {

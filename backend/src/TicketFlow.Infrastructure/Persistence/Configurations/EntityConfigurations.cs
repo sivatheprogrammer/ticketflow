@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using TicketFlow.Domain.Entities;
+using TicketFlow.Domain.Modules.Bookings.Entities;
+using TicketFlow.Domain.Modules.Events.Entities;
 
 namespace TicketFlow.Infrastructure.Persistence.Configurations;
 

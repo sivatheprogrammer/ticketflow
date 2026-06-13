@@ -1,7 +1,7 @@
 using TicketFlow.Domain.Common;
 using TicketFlow.Domain.Exceptions;
 
-namespace TicketFlow.Domain.Entities;
+namespace TicketFlow.Domain.Modules.Events.Entities;
 
 public class Customer : BaseEntity
 {

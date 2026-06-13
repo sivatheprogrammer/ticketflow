@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
-using TicketFlow.Domain.Entities;
 using TicketFlow.Domain.Enums;
+using TicketFlow.Domain.Modules.Events.Entities;
 
 namespace TicketFlow.Infrastructure.Persistence.Seed;
 
