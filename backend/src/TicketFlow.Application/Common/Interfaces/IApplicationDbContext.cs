@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using TicketFlow.Domain.Modules.Bookings.Entities;
 using TicketFlow.Domain.Modules.Events.Entities;
+using TicketFlow.Domain.Modules.Identity;
 
 namespace TicketFlow.Application.Common.Interfaces;
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TicketFlow.Application.Common.Interfaces;
 using TicketFlow.Domain.Modules.Bookings.Entities;
 using TicketFlow.Domain.Modules.Events.Entities;
+using TicketFlow.Domain.Modules.Identity;
 
 namespace TicketFlow.Infrastructure.Persistence;
 
