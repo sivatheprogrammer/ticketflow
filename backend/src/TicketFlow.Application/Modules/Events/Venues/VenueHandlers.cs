@@ -1,8 +1,8 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TicketFlow.Application.Common.Interfaces;
-using TicketFlow.Domain.Entities;
 using TicketFlow.Domain.Exceptions;
+using TicketFlow.Domain.Modules.Events.Entities;
 
 namespace TicketFlow.Application.Venues;
 
