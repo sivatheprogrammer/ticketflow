@@ -5,6 +5,7 @@ using TicketFlow.Domain.Enums;
 using TicketFlow.Domain.Exceptions;
 using TicketFlow.Domain.Modules.Bookings.Entities;
 using TicketFlow.Domain.Modules.Events.Entities;
+using TicketFlow.Domain.Modules.Identity;
 
 namespace TicketFlow.Application.Bookings.Commands;
 
