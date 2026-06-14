@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Scalar.AspNetCore;
 using Serilog;
 using TicketFlow.Identity.Api.Persistence;
 
@@ -13,7 +14,9 @@ builder.Services.AddDbContext<IdentityDbContext>(opts =>
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+
+
+builder.Services.AddOpenApi();
 
 builder.Services.AddCors(opts =>
 {
@@ -33,8 +36,8 @@ using (var scope = app.Services.CreateScope())
 
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.MapOpenApi();
+    app.MapScalarApiReference();
 }
 
 app.UseSerilogRequestLogging();
