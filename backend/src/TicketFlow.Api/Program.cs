@@ -1,9 +1,10 @@
 using FluentValidation;
-using StackExchange.Redis;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Serilog;
+using StackExchange.Redis;
+using TicketFlow.Api.Infrastructure;
 using TicketFlow.Api.Middleware;
 using TicketFlow.Application.Common.Interfaces;
 using TicketFlow.Infrastructure.Persistence;
@@ -121,6 +122,19 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 
 builder.Services.AddSingleton<TicketFlow.Application.Common.Interfaces.IRedisService,
     TicketFlow.Infrastructure.Services.RedisService>();
+
+
+// Identity Service HTTP Client
+builder.Services.Configure<IdentityServiceOptions>(
+    builder.Configuration.GetSection("IdentityService"));
+
+builder.Services.AddHttpClient<IdentityServiceClient>(client =>
+{
+    var baseUrl = builder.Configuration["IdentityService:BaseUrl"]!;
+    client.BaseAddress = new Uri(baseUrl);
+});
+
+builder.Services.AddScoped<IIdentityService, IdentityServiceAdapter>();
 
 var app = builder.Build();
 

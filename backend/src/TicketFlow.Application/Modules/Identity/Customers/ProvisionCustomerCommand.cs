@@ -1,8 +1,5 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using TicketFlow.Application.Common.Interfaces;
-using TicketFlow.Domain.Modules.Events.Entities;
-using TicketFlow.Domain.Modules.Identity;
 
 namespace TicketFlow.Application.Customers;
 
@@ -19,6 +16,9 @@ namespace TicketFlow.Application.Customers;
 /// - If we ever swap identity providers (Entra → Okta), local Customer records
 ///   remain intact — only the ExternalId mapping changes
 /// - See ADR-007 for the full decision record
+///
+/// Phase 5 update: DB lookup replaced with IdentityServiceClient HTTP call.
+/// Customer data now lives in TicketFlow.Identity.Api (separate service + DB).
 /// </summary>
 public record ProvisionCustomerCommand(
     string EntraObjectId,
@@ -28,22 +28,17 @@ public record ProvisionCustomerCommand(
 
 public class ProvisionCustomerHandler : IRequestHandler<ProvisionCustomerCommand, Guid>
 {
-    private readonly IApplicationDbContext _db;
-    public ProvisionCustomerHandler(IApplicationDbContext db) => _db = db;
+    private readonly IIdentityService _identityService;
+
+    public ProvisionCustomerHandler(IIdentityService identityService)
+    {
+        _identityService = identityService;
+    }
 
     public async Task<Guid> Handle(ProvisionCustomerCommand req, CancellationToken ct)
     {
-        // Look up existing customer by their Entra Object ID
-        var existing = await _db.Customers
-            .FirstOrDefaultAsync(c => c.ExternalId == req.EntraObjectId, ct);
-
-        if (existing is not null)
-            return existing.Id;
-
-        // First login — provision a new Customer record
-        var customer = new Customer(req.FullName, req.Email, externalId: req.EntraObjectId);
-        _db.Customers.Add(customer);
-        await _db.SaveChangesAsync(ct);
+        var customer = await _identityService.ProvisionCustomerAsync(
+            req.EntraObjectId, req.Email, req.FullName, ct);
 
         return customer.Id;
     }

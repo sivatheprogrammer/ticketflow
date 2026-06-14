@@ -5,7 +5,6 @@ using TicketFlow.Domain.Enums;
 using TicketFlow.Domain.Exceptions;
 using TicketFlow.Domain.Modules.Bookings.Entities;
 using TicketFlow.Domain.Modules.Events.Entities;
-using TicketFlow.Domain.Modules.Identity;
 
 namespace TicketFlow.Application.Bookings.Commands;
 
@@ -32,10 +31,6 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
 
     public async Task<CreateBookingResult> Handle(CreateBookingCommand request, CancellationToken ct)
     {
-        // Verify customer and event exist
-        var customer = await _db.Customers.FindAsync(new object[] { request.CustomerId }, ct)
-            ?? throw new EntityNotFoundException(nameof(Customer), request.CustomerId);
-
         var @event = await _db.Events
             .Include(e => e.Tickets)
             .FirstOrDefaultAsync(e => e.Id == request.EventId, ct)
@@ -45,7 +40,6 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
             throw new BusinessRuleViolationException(
                 "EVENT_NOT_PUBLISHED", "Tickets can only be booked for published events.");
 
-        // Find available tickets for the requested tier
         var available = @event.Tickets
             .Where(t => t.Tier == request.Tier && t.Status == TicketStatus.Available)
             .Take(request.Quantity)
@@ -56,9 +50,6 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
                 "TICKETS_INSUFFICIENT",
                 $"Only {available.Count} tickets available for tier {request.Tier}, requested {request.Quantity}.");
 
-        // --- Distributed locking (Phase 3: Redis) ---
-        // Acquire a lock per ticket to prevent double-booking across API replicas.
-        // Each lock key is unique to the ticket row: lock:ticket:{id}
         var lockKeys = available.Select(t => $"lock:ticket:{t.Id}").ToList();
         var acquiredLocks = new List<string>();
 
@@ -68,17 +59,13 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
             {
                 var acquired = await _redis.AcquireLockAsync(lockKey, LockExpiry, ct);
                 if (!acquired)
-                {
-                    // Another replica is processing one of these tickets — abort
                     throw new BusinessRuleViolationException(
                         "TICKETS_UNAVAILABLE",
                         "One or more tickets are temporarily unavailable. Please try again.");
-                }
                 acquiredLocks.Add(lockKey);
             }
 
-            // All locks acquired — safe to create the booking
-            var booking = new Booking(customer.Id, @event.Id, available);
+            var booking = new Booking(request.CustomerId, @event.Id, available);
             _db.Bookings.Add(booking);
             await _db.SaveChangesAsync(ct);
 
@@ -86,7 +73,6 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
         }
         finally
         {
-            // Always release locks — even if an exception was thrown
             foreach (var lockKey in acquiredLocks)
                 await _redis.ReleaseLockAsync(lockKey, ct);
         }
