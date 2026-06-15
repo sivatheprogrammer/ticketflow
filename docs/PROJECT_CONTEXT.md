@@ -20,7 +20,7 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID | ✅ Complete | May 2026 |
 | **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ✅ Complete | May 2026 |
 | **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Terraform | ✅ Complete | June 2026 |
-| **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ⏳ Planned | — |
+| **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | 🔄 In Progress | — |
 | **6** | Container Orchestration (ACA + AKS) | Azure Container Apps (primary), AKS + Helm (demonstration), KEDA autoscaling | ⏳ Planned | — |
 
 > **How to update:** When a phase ships, change status to ✅ Complete, fill in the date, and tag a Git release (`v0.1` for Phase 1, etc.).
@@ -30,16 +30,22 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 ## 📍 Where I Am Right Now
 
 **Current Phase:** 5 — Modular Monolith + Identity Service Extraction
-**Current Sub-task:** Not started
-**Last commit:** docs: add ADR-009 - Terraform over Bicep
+**Current Sub-task:** Saga pattern (Step 6) — all prior steps complete
+**Last commit:** feat: Phase 5 Step 5 - Service Bus Consumer (BookingCreatedConsumer)
+**Branch:** `phase/5-service-bus-consumer`
 **GitHub:** https://github.com/sivatheprogrammer/ticketflow
-**Blocking issues:** None — Phase 4 fully shipped
+**Blocking issues:** None
 
-**Live Azure URLs (when infra is up):**
-- API: https://app-ticketflow-api-dev-siva04.azurewebsites.net
-- Web: https://app-ticketflow-web-dev-siva04.azurewebsites.net
-- Run `terraform apply -auto-approve` from `/terraform` to recreate; `terraform destroy -auto-approve` to tear down and stop billing.
+**Phase 5 Progress:**
 
+| Step | Description | Status |
+|------|-------------|--------|
+| 1 | Extract Identity Service (`TicketFlow.Identity.Api`) | ✅ Done |
+| 2 | Wire `IdentityServiceClient` into main API | ✅ Done |
+| 3 | YARP API Gateway (port 7153) | ✅ Done |
+| 4 | Azure Service Bus event publishing (`BookingCreatedEvent`) | ✅ Done — PR #4 merged |
+| 5 | Service Bus consumer (`BookingCreatedConsumer`) | ✅ Done |
+| 6 | Saga pattern | 🔜 Next |
 ---
 
 ## 🧠 Key Architectural Decisions (So Far)
@@ -57,7 +63,9 @@ Each decision links to a full ADR in `/docs/adr`. This list is the TL;DR.
 | ADR-006 | Microsoft Entra ID (primary) + Okta (bonus demo) for OAuth | Best resume keyword density for .NET Architect roles, Azure ecosystem coherence, free at production scale | 2 |
 | ADR-009 | Terraform over Bicep for IaC | Job market relevance, multi-cloud transferability, state management | 4 |
 | ADR-010 | Redis for distributed locking and cache-aside; ticket pre-creation trade-off documented | Multi-instance API deployment requires distributed coordination; cache-aside reduces DB load under load | 3 |
-| ADR-011 *(planned)* | Modular Monolith + one extracted Identity service (not full microservices) | Demonstrates architectural restraint AND decomposition skill; 90% of microservices learning at 50% of the time investment | 5 |
+| ADR-011 | Modular Monolith + one extracted Identity service (not full microservices) | Demonstrates architectural restraint AND decomposition skill | 5 |
+| ADR-012 | YARP API Gateway over nginx | Native .NET, programmatic config, better for service-to-service routing | 5 |
+| ADR-013 | Azure Service Bus Emulator for local development | Zero cost, offline, mirrors production; AmqpTcp on port 5672 | 5 |
 | ADR-013 *(planned)* | Azure Container Apps (primary) + AKS (demonstration track) | ACA fits the workload; AKS demonstrates Kubernetes operational skill; comparison ADR shows architectural judgment | 6 |
 
 ---
@@ -195,7 +203,10 @@ ticketflow/
 - **Time spent:** ~2 sessions
 
 ### Phase 5 — Modular Monolith + Identity Service Extraction
-*To be completed.*
+- **What I built so far:** `TicketFlow.Identity.Api` (extracted identity service), `IdentityServiceClient` (typed HttpClient), `TicketFlow.Gateway` (YARP on port 7153), `BookingCreatedEvent` message contract, `IEventPublisher` + `ServiceBusEventPublisher`, `BookingCreatedConsumer` background worker, Service Bus emulator infrastructure. ADR-011, ADR-012, ADR-013 committed.
+- **What surprised me:** Service Bus emulator requires `AmqpTcp` (port 5672) not `AmqpWebSockets` — WebSockets causes silent connection failure. `SAS_KEY_VALUE` in connection string is the literal key, not a placeholder. Namespace must be exactly `sbemulatorns`.
+- **Remaining:** Saga pattern
+- **Time spent:** ~3 sessions
 
 ### Phase 6 — Container Orchestration (ACA primary + AKS demonstration)
 *To be completed.*
@@ -229,4 +240,4 @@ If you're an AI assistant reading this to help me continue the project, here's w
 
 ---
 
-*Last updated: May 2026 — Phase 3 complete, Phase 4 planning started*
+*Last updated: June 2026 — Phase 5 in progress (Steps 1–5 done, Saga pattern remaining)*
