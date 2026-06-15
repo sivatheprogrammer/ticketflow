@@ -57,7 +57,7 @@ connection strings injected via environment variables or Azure App Config.
 
 ### 1. Namespace name is fixed
 The emulator only supports the namespace name `sbemulatorns` (exactly 12
-characters). Any other name causes the emulator to crash with:
+characters). Any other name causes the emulator to crash on startup.
 
 ### 2. SQL Edge dependency required
 The emulator requires `mcr.microsoft.com/azure-sql-edge` as a backing
@@ -73,15 +73,27 @@ The `config.json` must include a `Logging` section:
 ```
 Omitting this causes a `NullReferenceException` on startup.
 
-### 4. Transport type must be AmqpWebSockets
-The connection string must use `AmqpWebSockets` transport:
+### 4. Transport type must be AmqpTcp (not AmqpWebSockets)
+The emulator exposes port `5672` (plain AMQP TCP). Using `AmqpWebSockets`
+(port 443) will cause connection failures silently — the consumer starts
+but cannot reach the emulator.
 
-And the `ServiceBusClient` must be configured with:
+The `ServiceBusClient` must be configured with:
 ```csharp
 var clientOptions = new ServiceBusClientOptions
 {
-    TransportType = ServiceBusTransportType.AmqpWebSockets
+    TransportType = ServiceBusTransportType.AmqpTcp  // NOT AmqpWebSockets
 };
+```
+
+Do NOT add `TransportType=AmqpWebSockets;` to the connection string either.
+The correct connection string format is:
+
+Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;
+
+Note: `SAS_KEY_VALUE` is the literal string — not a placeholder. The emulator
+uses this fixed value and will output it in its own startup logs.
+
 ```
 
 ### 5. Correct config.json structure

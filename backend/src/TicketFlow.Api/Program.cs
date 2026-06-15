@@ -127,6 +127,10 @@ builder.Services.AddSingleton<TicketFlow.Application.Common.Interfaces.IRedisSer
 builder.Services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
 
 
+// Service Bus Consumer (Background Worker)
+builder.Services.AddHostedService<BookingCreatedConsumer>();
+
+
 // Identity Service HTTP Client
 builder.Services.Configure<IdentityServiceOptions>(
     builder.Configuration.GetSection("IdentityService"));
