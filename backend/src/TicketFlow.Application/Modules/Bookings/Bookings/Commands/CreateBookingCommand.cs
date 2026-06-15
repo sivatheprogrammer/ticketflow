@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using TicketFlow.Application.Common.Interfaces;
+using TicketFlow.Application.Common.Messages;
 using TicketFlow.Domain.Enums;
 using TicketFlow.Domain.Exceptions;
 using TicketFlow.Domain.Modules.Bookings.Entities;
@@ -20,13 +21,15 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
 {
     private readonly IApplicationDbContext _db;
     private readonly IRedisService _redis;
+    private readonly IEventPublisher _eventPublisher;
 
     private static readonly TimeSpan LockExpiry = TimeSpan.FromSeconds(30);
 
-    public CreateBookingHandler(IApplicationDbContext db, IRedisService redis)
+    public CreateBookingHandler(IApplicationDbContext db, IRedisService redis, IEventPublisher eventPublisher)
     {
         _db = db;
         _redis = redis;
+        _eventPublisher = eventPublisher;
     }
 
     public async Task<CreateBookingResult> Handle(CreateBookingCommand request, CancellationToken ct)
@@ -68,6 +71,15 @@ public class CreateBookingHandler : IRequestHandler<CreateBookingCommand, Create
             var booking = new Booking(request.CustomerId, @event.Id, available);
             _db.Bookings.Add(booking);
             await _db.SaveChangesAsync(ct);
+
+            // Publish BookingCreated event to Service Bus
+            await _eventPublisher.PublishBookingCreatedAsync(new BookingCreatedEvent(
+                booking.Id,
+                request.CustomerId,
+                @event.Id,
+                booking.ReferenceCode,
+                booking.TotalAmount,
+                booking.CreatedAt), ct);
 
             return new CreateBookingResult(booking.Id, booking.ReferenceCode, booking.TotalAmount);
         }
