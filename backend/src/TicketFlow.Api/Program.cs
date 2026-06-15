@@ -123,6 +123,9 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 builder.Services.AddSingleton<TicketFlow.Application.Common.Interfaces.IRedisService,
     TicketFlow.Infrastructure.Services.RedisService>();
 
+// Service Bus Event Publisher
+builder.Services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
+
 
 // Identity Service HTTP Client
 builder.Services.Configure<IdentityServiceOptions>(
