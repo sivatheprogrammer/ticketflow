@@ -1,23 +1,22 @@
 ﻿using Azure.Messaging.ServiceBus;
-using MediatR;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
-using TicketFlow.Application.Bookings.Commands;
 using TicketFlow.Application.Common.Interfaces;
 using TicketFlow.Application.Common.Messages;
 
 namespace TicketFlow.Api.Infrastructure;
 
-public class BookingCreatedConsumer : BackgroundService
+public class BookingConfirmedConsumer : BackgroundService
 {
     private readonly IConfiguration _configuration;
-    private readonly ILogger<BookingCreatedConsumer> _logger;
+    private readonly ILogger<BookingConfirmedConsumer> _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private ServiceBusClient? _client;
     private ServiceBusProcessor? _processor;
 
-    public BookingCreatedConsumer(
+    public BookingConfirmedConsumer(
         IConfiguration configuration,
-        ILogger<BookingCreatedConsumer> logger,
+        ILogger<BookingConfirmedConsumer> logger,
         IServiceScopeFactory scopeFactory)
     {
         _configuration = configuration;
@@ -28,7 +27,7 @@ public class BookingCreatedConsumer : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var connectionString = _configuration["ServiceBus:ConnectionString"]!;
-        var queueName = _configuration["ServiceBus:BookingCreatedQueue"] ?? "booking-created";
+        var queueName = _configuration["ServiceBus:BookingConfirmedQueue"] ?? "booking-confirmed";
 
         var clientOptions = new ServiceBusClientOptions
         {
@@ -57,41 +56,39 @@ public class BookingCreatedConsumer : BackgroundService
         try
         {
             var body = args.Message.Body.ToString();
-            var bookingEvent = JsonSerializer.Deserialize<BookingCreatedEvent>(body);
+            var confirmedEvent = JsonSerializer.Deserialize<BookingConfirmedEvent>(body);
 
-            if (bookingEvent is not null)
+            if (confirmedEvent is not null)
             {
                 _logger.LogInformation(
-                    "BookingCreated event received: BookingId={BookingId}, ReferenceCode={ReferenceCode}",
-                    bookingEvent.BookingId,
-                    bookingEvent.ReferenceCode);
+                    "BookingConfirmed event received: BookingId={BookingId}, ReferenceCode={ReferenceCode}",
+                    confirmedEvent.BookingId,
+                    confirmedEvent.ReferenceCode);
 
                 using var scope = _scopeFactory.CreateScope();
-                var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-                var publisher = scope.ServiceProvider.GetRequiredService<IEventPublisher>();
+                var db = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
-                // Saga Step: Confirm the booking
-                await mediator.Send(new ConfirmBookingCommand(bookingEvent.BookingId));
+                var booking = await db.Bookings
+                    .Include(b => b.Tickets)
+                    .FirstOrDefaultAsync(b => b.Id == confirmedEvent.BookingId);
 
-                _logger.LogInformation(
-                    "Booking confirmed via Saga: BookingId={BookingId}",
-                    bookingEvent.BookingId);
+                if (booking is not null)
+                {
+                    _logger.LogInformation(
+                        "Saga complete: Booking {BookingId} confirmed with {Count} ticket(s) booked. ReferenceCode={ReferenceCode}",
+                        confirmedEvent.BookingId,
+                        booking.Tickets.Count,
+                        confirmedEvent.ReferenceCode);
 
-                // Publish BookingConfirmed event for next Saga step
-                await publisher.PublishBookingConfirmedAsync(new BookingConfirmedEvent(
-                    bookingEvent.BookingId,
-                    bookingEvent.CustomerId,
-                    bookingEvent.EventId,
-                    bookingEvent.ReferenceCode,
-                    bookingEvent.TotalAmount,
-                    DateTime.UtcNow));
+                    // Future: send confirmation email, notify payment service, update analytics
+                }
             }
 
             await args.CompleteMessageAsync(args.Message);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error processing BookingCreated message. Abandoning.");
+            _logger.LogError(ex, "Error processing BookingConfirmed message. Abandoning.");
             await args.AbandonMessageAsync(args.Message);
         }
     }
