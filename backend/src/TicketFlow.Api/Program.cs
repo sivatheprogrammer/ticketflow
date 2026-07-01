@@ -129,6 +129,7 @@ builder.Services.AddSingleton<IEventPublisher, ServiceBusEventPublisher>();
 
 // Service Bus Consumer (Background Worker)
 builder.Services.AddHostedService<BookingCreatedConsumer>();
+builder.Services.AddHostedService<BookingConfirmedConsumer>();
 
 
 // Identity Service HTTP Client
