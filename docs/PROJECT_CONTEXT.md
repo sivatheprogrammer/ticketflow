@@ -20,7 +20,7 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | **2** | Authentication & Authorization | OAuth 2.0 / OIDC via Microsoft Entra ID | ✅ Complete | May 2026 |
 | **3** | Containerization + Distributed Caching | Docker, docker-compose, multi-stage builds, Redis (distributed locking + cache-aside), nginx load balancer | ✅ Complete | May 2026 |
 | **4** | Cloud Deployment + IaC | Azure App Service, Azure SQL, Terraform | ✅ Complete | June 2026 |
-| **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | 🔄 In Progress | — |
+| **5** | Modular Monolith + Identity Service Extraction | Module boundaries (DDD), API Gateway (YARP), Azure Service Bus, Saga pattern, service-to-service auth | ✅ Complete | July 2026 |
 | **6** | Container Orchestration (ACA + AKS) | Azure Container Apps (primary), AKS + Helm (demonstration), KEDA autoscaling | ⏳ Planned | — |
 
 > **How to update:** When a phase ships, change status to ✅ Complete, fill in the date, and tag a Git release (`v0.1` for Phase 1, etc.).
@@ -29,14 +29,12 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 
 ## 📍 Where I Am Right Now
 
-**Current Phase:** 5 — Modular Monolith + Identity Service Extraction
-**Current Sub-task:** Saga pattern (Step 6) — all prior steps complete
-**Last commit:** feat: Phase 5 Step 5 - Service Bus Consumer (BookingCreatedConsumer)
-**Branch:** `phase/5-service-bus-consumer`
+**Current Phase:** 6 — Container Orchestration (ACA + AKS)
+**Current Sub-task:** Not started
+**Last commit:** docs: add ADR-014 - Choreography-based Saga pattern
+**Branch:** main
 **GitHub:** https://github.com/sivatheprogrammer/ticketflow
-**Blocking issues:** None
-
-**Phase 5 Progress:**
+**Blocking issues:** None — Phase 5 fully shipped
 
 | Step | Description | Status |
 |------|-------------|--------|
@@ -45,7 +43,7 @@ TicketFlow is a portfolio project I'm building to demonstrate .NET Architect-lev
 | 3 | YARP API Gateway (port 7153) | ✅ Done |
 | 4 | Azure Service Bus event publishing (`BookingCreatedEvent`) | ✅ Done — PR #4 merged |
 | 5 | Service Bus consumer (`BookingCreatedConsumer`) | ✅ Done |
-| 6 | Saga pattern | 🔜 Next |
+| 6 | Saga pattern | ✅ Done — PR #6 merged |
 ---
 
 ## 🧠 Key Architectural Decisions (So Far)
@@ -66,8 +64,8 @@ Each decision links to a full ADR in `/docs/adr`. This list is the TL;DR.
 | ADR-011 | Modular Monolith + one extracted Identity service (not full microservices) | Demonstrates architectural restraint AND decomposition skill | 5 |
 | ADR-012 | YARP API Gateway over nginx | Native .NET, programmatic config, better for service-to-service routing | 5 |
 | ADR-013 | Azure Service Bus Emulator for local development | Zero cost, offline, mirrors production; AmqpTcp on port 5672 | 5 |
-| ADR-013 *(planned)* | Azure Container Apps (primary) + AKS (demonstration track) | ACA fits the workload; AKS demonstrates Kubernetes operational skill; comparison ADR shows architectural judgment | 6 |
-
+| ADR-014 | Choreography-based Saga for booking flow | No central coordinator; fits existing Service Bus infrastructure | 5 |
+| ADR-015 *(planned)* | Azure Container Apps (primary) + AKS (demonstration track) | ACA fits the workload; AKS demonstrates Kubernetes operational skill | 6 |
 ---
 
 ## 🏗️ Domain Model Cheat Sheet
@@ -205,8 +203,8 @@ ticketflow/
 ### Phase 5 — Modular Monolith + Identity Service Extraction
 - **What I built so far:** `TicketFlow.Identity.Api` (extracted identity service), `IdentityServiceClient` (typed HttpClient), `TicketFlow.Gateway` (YARP on port 7153), `BookingCreatedEvent` message contract, `IEventPublisher` + `ServiceBusEventPublisher`, `BookingCreatedConsumer` background worker, Service Bus emulator infrastructure. ADR-011, ADR-012, ADR-013 committed.
 - **What surprised me:** Service Bus emulator requires `AmqpTcp` (port 5672) not `AmqpWebSockets` — WebSockets causes silent connection failure. `SAS_KEY_VALUE` in connection string is the literal key, not a placeholder. Namespace must be exactly `sbemulatorns`.
-- **Remaining:** Saga pattern
-- **Time spent:** ~3 sessions
+- **Remaining:** None — Phase 5 complete ✅
+- **Time spent:** ~4 sessions
 
 ### Phase 6 — Container Orchestration (ACA primary + AKS demonstration)
 *To be completed.*
@@ -223,21 +221,18 @@ If you're an AI assistant reading this to help me continue the project, here's w
 4. **Runtime:** The project runs on **.NET 10** (not .NET 8). All csproj files target `net10.0`. EF Core packages are version `10.0.0`.
 5. **Code style:** C# with nullable enabled, file-scoped namespaces, primary constructors where they help. Angular standalone components, signals over RxJS for component state, RxJS for HTTP streams. `@if` / `@for` control flow syntax.
 6. **Docker:** Full stack runs via `docker compose up` from repo root. API image is `ticketflow-api`, Angular image is `ticketflow-web`. SA password in `.env` file (gitignored).
-7. **My current goal:** Start Phase 4 — Azure cloud deployment with Terraform IaC.
+7. **My current goal:** Start Phase 6 — Azure Container Apps (primary) + AKS (demonstration).
 8. **My experience level:** Comfortable with .NET and Angular, learning architect-level patterns (DDD, distributed systems, cloud-native deployment).
 
 ---
 
 ## 📝 Open Questions / Parking Lot
 
-- [ ] Should the Booking aggregate emit domain events for future Saga refactor in Phase 5?
-- [ ] Add `.gitattributes` for LF/CRLF handling on Windows — do in cleanup commit
-- [ ] Add OpenTelemetry from Phase 3 (Docker) or wait until Phase 5 (microservices)?
-- [ ] Should I add OpenAPI versioning (`/api/v1/`) before Phase 4 cloud deployment?
-- [ ] C4 architecture diagrams in `/docs/diagrams` — generate before or after Phase 5?
+- [ ] Add OpenTelemetry — Phase 6 consideration
+- [ ] C4 architecture diagrams in `/docs/diagrams` — generate during Phase 6
 - [ ] Cache invalidation on booking confirmation — invalidate `events:detail:{id}` when tickets are reserved
 - [ ] RedLock algorithm for production-grade distributed locking (Phase 6 consideration)
 
 ---
 
-*Last updated: June 2026 — Phase 5 in progress (Steps 1–5 done, Saga pattern remaining)*
+*Last updated: July 2026 — Phase 5 complete, Phase 6 planning started*
