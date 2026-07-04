@@ -1,0 +1,31 @@
+replicaCount: 1
+
+image:
+  repository: acrticketflowdevsiva06.azurecr.io/ticketflow-gateway
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+ingress:
+  enabled: true
+  className: nginx
+  path: /
+  pathType: Prefix
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+  ReverseProxy__Clusters__api-cluster__Destinations__main-api__Address: "http://ticketflow-api-api"
+  ReverseProxy__Clusters__identity-cluster__Destinations__identity-api__Address: "http://ticketflow-identity-identity"

@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: acrticketflowdevsiva06.azurecr.io/ticketflow-identity
+  pullPolicy: IfNotPresent
+  tag: "latest"
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+env:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  ASPNETCORE_URLS: "http://+:8080"
+
+secretEnv:
+  ConnectionStrings__IdentityDb: ""

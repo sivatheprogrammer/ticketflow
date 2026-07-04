@@ -57,6 +57,15 @@ resource "azurerm_mssql_database" "main" {
   tags        = local.tags
 }
 
+resource "azurerm_mssql_database" "identity" {
+  name        = "sqldb-ticketflow-identity-dev"
+  server_id   = azurerm_mssql_server.main.id
+  collation   = "SQL_Latin1_General_CP1_CI_AS"
+  sku_name    = "Basic"
+  max_size_gb = 2
+  tags        = local.tags
+}
+
 # ─────────────────────────────────────────
 # Azure Service Bus (real — not emulator)
 # ─────────────────────────────────────────
@@ -264,14 +273,14 @@ resource "azurerm_container_app" "gateway" {
         name  = "ASPNETCORE_ENVIRONMENT"
         value = "Production"
       }
-     env {
-  name  = "ReverseProxy__Clusters__api-cluster__Destinations__main-api__Address"
-  value = "https://${azurerm_container_app.api.ingress[0].fqdn}"
-}
-env {
-  name  = "ReverseProxy__Clusters__identity-cluster__Destinations__identity-api__Address"
-  value = "https://${azurerm_container_app.identity.ingress[0].fqdn}"
-}
+      env {
+        name  = "ReverseProxy__Clusters__api-cluster__Destinations__main-api__Address"
+        value = "https://${azurerm_container_app.api.ingress[0].fqdn}"
+      }
+      env {
+        name  = "ReverseProxy__Clusters__identity-cluster__Destinations__identity-api__Address"
+        value = "https://${azurerm_container_app.identity.ingress[0].fqdn}"
+      }
     }
 
     min_replicas = 1
@@ -290,29 +299,28 @@ env {
 
 # ─────────────────────────────────────────
 # AKS Cluster (demonstration track)
-# Uncomment when ready to demonstrate AKS
 # ─────────────────────────────────────────
-# resource "azurerm_kubernetes_cluster" "main" {
-#   name                = "aks-${var.project}-${var.environment}-${local.suffix}"
-#   resource_group_name = azurerm_resource_group.main.name
-#   location            = azurerm_resource_group.main.location
-#   dns_prefix          = "${var.project}-${local.suffix}"
-#   tags                = local.tags
-#
-#   default_node_pool {
-#     name       = "default"
-#     node_count = 2
-#     vm_size    = "Standard_B2s"
-#   }
-#
-#   identity {
-#     type = "SystemAssigned"
-#   }
-# }
-#
-# resource "azurerm_role_assignment" "aks_acr_pull" {
-#   principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
-#   role_definition_name             = "AcrPull"
-#   scope                            = azurerm_container_registry.acr.id
-#   skip_service_principal_aad_check = true
-# }
+resource "azurerm_kubernetes_cluster" "main" {
+  name                = "aks-${var.project}-${var.environment}-${local.suffix}"
+  resource_group_name = azurerm_resource_group.main.name
+  location            = azurerm_resource_group.main.location
+  dns_prefix          = "${var.project}-${local.suffix}"
+  tags                = local.tags
+
+  default_node_pool {
+    name       = "default"
+    node_count = 1
+    vm_size    = "Standard_D2s_v3"
+  }
+
+  identity {
+    type = "SystemAssigned"
+  }
+}
+
+resource "azurerm_role_assignment" "aks_acr_pull" {
+  principal_id                     = azurerm_kubernetes_cluster.main.kubelet_identity[0].object_id
+  role_definition_name             = "AcrPull"
+  scope                            = azurerm_container_registry.acr.id
+  skip_service_principal_aad_check = true
+}
